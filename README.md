@@ -1,5 +1,125 @@
-## 👩‍💻 Developer
+# CodeArena – Online Coding Battle Platform
+
+CodeArena is a web-based online coding battle platform where two players can compete against each other by solving programming challenges within a limited time.
+
+The platform allows users to create or join coding battles, write and execute code, and compare their results to determine the winner.
+
+## 🚀 Features
+
+- **1v1 Coding Battles:** Compete with another player in a coding challenge.
+- **Create and Join Battles:** Create a battle and share the invitation link with another player.
+- **Online Code Editor:** Write code using the integrated CodeMirror editor.
+- **Multiple Programming Languages:** Supports C, C++, C#, Python, and JavaScript as configured in the project.
+- **Code Execution:** Execute submitted code using the Judge0 API through RapidAPI.
+- **Battle Timer:** Solve the challenge within the available time.
+- **Automatic Result:** Displays the winner or a draw based on the battle results.
+- **Leaderboard:** View player rankings.
+
+## 🛠️ Technologies Used
+
+### Frontend
+- HTML
+- CSS
+- JavaScript
+- CodeMirror
+
+### Backend
+- Node.js
+- Express.js
+- Axios
+
+### API
+- Judge0 API
+- RapidAPI
+
+## 📁 Project Structure
+
+```text
+CodeArena/
+│
+├── Frontend/
+│   ├── index.html
+│   ├── script.js
+│   ├── style.css
+│   ├── battle.html
+│   ├── battle.js
+│   ├── result.html
+│   └── config.js
+│
+├── Backend/
+│   ├── index.js
+│   ├── battleStore.js
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── .env.example
+│   └── .gitignore
+│
+└── .gitignore
+```
+
+## ⚙️ Installation and Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Sushmithagowda15/CodeArena-.git
+```
+
+### 2. Navigate to the Project
+
+```bash
+cd CodeArena-
+```
+
+### 3. Install Backend Dependencies
+
+```bash
+cd Backend
+npm install
+```
+
+### 4. Configure Environment Variables
+
+Create a `.env` file inside the `Backend` folder and add your RapidAPI key:
+
+```env
+RAPIDAPI_KEY=your_rapidapi_key
+FRONTEND_URL=http://localhost:5500
+NODE_ENV=development
+```
+
+Replace `your_rapidapi_key` with your own RapidAPI key. Never upload your `.env` file to GitHub.
+
+### 5. Start the Backend Server
+
+```bash
+npm start
+```
+
+### 6. Run the Frontend
+
+Open the frontend using a local development server, such as the VS Code Live Server extension.
+
+Make sure the API URL in `Frontend/config.js` points to your locally running backend.
+
+## 🎮 How It Works
+
+1. A player opens CodeArena and creates a coding battle.
+2. The platform generates an invitation link.
+3. Another player joins using the invitation link.
+4. Both players receive the coding challenge.
+5. The battle timer starts when both players have joined.
+6. Players write and submit their solutions.
+7. Submitted code is executed through the Judge0 API.
+8. The platform compares the results and displays the winner or a draw.
+
+## 🔮 Future Enhancements
+
+- Database integration for persistent battle history and leaderboard data.
+- User authentication and individual player profiles.
+- Additional coding challenges and programming languages.
+- Improved real-time battle synchronization.
 
 
 
-CodeArena – Think. Code. Compete.
+**CodeArena – Think. Code. Compete.**
