@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔥 Code Arena</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>🔥 Welcome to Code Arena</h1>
+
+  <div class="section">
+    <h2>Create Battle</h2>
+    <label>Creator Name:</label>
+    <input type="text" id="creatorName" placeholder="Enter your name" />
+
+    <label>Skill Level:</label>
+    <select id="skillSelect">
+      <option value="beginner">Beginner</option>
+      <option value="intermediate">Intermediate</option>
+      <option value="advanced">Advanced</option>
+    </select>
+
+    <button id="createBattleBtn">Create Battle</button>
+    <p id="createMsg" class="hint"></p>
+  </div>
+
+  <div class="section">
+    <h2>Join Battle</h2>
+    <label>Battle ID:</label>
+    <input type="text" id="joinBattleId" placeholder="battle_..." />
+    <label>Your Name:</label>
+    <input type="text" id="joinName" placeholder="Player name" />
+    <button id="joinBattleBtn">Join</button>
+    <p id="joinMsg" class="hint"></p>
+  </div>
+
+  <div class="section">
+    <h2>🏆 Recent Leaderboard</h2>
+    <div id="leaderboardBox">Loading...</div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

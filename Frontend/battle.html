@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔥 Code Arena Battle</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- CodeMirror -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/dracula.min.css" />
+</head>
+<body>
+  <h1>🔥 Code Arena Battle</h1>
+
+  <div class="section">
+    <p><b>Battle ID:</b> <span id="battleId">Loading...</span></p>
+    <p>
+      <span class="player-box creator" id="player1">Waiting...</span>
+      <span class="player-box opponent" id="player2">Waiting...</span>
+      <span id="status" class="status waiting">waiting</span>
+      <span class="timer" id="battleTimer">--:--</span>
+    </p>
+  </div>
+
+  <div class="section" id="joinSection">
+    <h2>Join This Battle</h2>
+    <label>Your Name:</label>
+    <input type="text" id="joinName" placeholder="Enter your name" />
+    <button id="joinBtn">Join</button>
+    <p id="joinMsg" class="hint"></p>
+  </div>
+
+  <div class="section" id="problemSection">
+    <h2>Problem</h2>
+    <div id="problemText">Loading problem...</div>
+    <h3>Input</h3>
+    <pre id="problemInput">Loading input...</pre>
+    <h3>Expected Output</h3>
+    <pre id="expectedOutput">Loading expected output...</pre>
+  </div>
+
+  <div class="section">
+    <h2>Your Code</h2>
+    <label>Language:</label>
+    <select id="languageSelect">
+      <option value="52">C++</option>
+      <option value="50">C</option>
+      <option value="71">Python</option>
+      <option value="63">JavaScript</option>
+    </select>
+
+    <textarea id="codeBox">// Write your code here...</textarea>
+
+    <div class="btn-row">
+      <button id="runBtn">Run</button>
+      <button id="copyBtn">Copy</button>
+      <button id="clearBtn">Clear</button>
+      <button id="finishBtn">Finish</button>
+    </div>
+
+    <div id="statusText" class="hint"></div>
+    <h3>Output</h3>
+    <pre id="outputBox">Output will appear here...</pre>
+  </div>
+
+  <div class="section" id="opponentSection" style="display:none;">
+    <h2>Opponent's Last Submitted Code</h2>
+    <pre id="opponentCode">Will appear after finish.</pre>
+  </div>
+
+  <div class="section">
+    <div id="winner"></div>
+  </div>
+
+  <!-- CodeMirror JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/clike/clike.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/javascript/javascript.min.js"></script>
+
+  <!-- Centralized API Config -->
+  <script src="config.js"></script>
+
+  <script>
+    const API = (typeof API_CONFIG !== "undefined" && API_CONFIG.BASE_URL)
+      ? API_CONFIG.BASE_URL
+      : "http://localhost:3000";
+
+    const params = new URLSearchParams(window.location.search);
+    const battleId = params.get("battleId");
+    let myName = (params.get("player") || "").trim();
+
+    document.getElementById("battleId").innerText = battleId || "N/A";
+
+    // Hide join section if player name is already provided in URL
+    if (myName) {
+      const joinSec = document.getElementById("joinSection");
+      if (joinSec) joinSec.style.display = "none";
+    }
+
+    // CodeMirror setup
+    var editor = CodeMirror.fromTextArea(document.getElementById("codeBox"), {
+      theme: "dracula",
+      lineNumbers: true,
+      mode: "text/x-c++src",
+      tabSize: 4
+    });
+
+    function setMode(langId) {
+      if (langId == "71") editor.setOption("mode", "python");
+      else if (langId == "63") editor.setOption("mode", "javascript");
+      else editor.setOption("mode", "text/x-c++src");
+    }
+    document.getElementById("languageSelect").addEventListener("change", (e) => setMode(e.target.value));
+
+    // Copy & Clear
+    document.getElementById("copyBtn")?.addEventListener("click", () => {
+      navigator.clipboard.writeText(editor.getValue());
+      alert("Copied to clipboard!");
+    });
+
+    document.getElementById("clearBtn")?.addEventListener("click", () => {
+      editor.setValue("");
+      document.getElementById("outputBox").innerText = "Output will appear here...";
+      document.getElementById("statusText").innerText = "";
+    });
+
+    // Helper: persist latest code to backend by running
+    async function persistLatestCode() {
+      if (!battleId || !myName) return;
+      const lang = document.getElementById("languageSelect").value;
+      const code = editor.getValue();
+      const input = document.getElementById("problemInput").innerText;
+
+      try {
+        await fetch(`${API}/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ battleId, player: myName, language: lang, code, stdin: input })
+        });
+      } catch (e) {
+        console.error("Persist code error:", e);
+      }
+    }
+
+    let pollInterval = null;
+    let isRedirecting = false;
+
+    // Load battle info (poll)
+    async function loadBattle() {
+      if (!battleId) return;
+      try {
+        const res = await fetch(`${API}/battle/${encodeURIComponent(battleId)}`);
+        const data = await res.json();
+        if (!data.success || !data.battle) return;
+
+        const b = data.battle;
+
+        document.getElementById("player1").innerText = b.player1 || "Waiting...";
+        document.getElementById("player2").innerText = b.player2 || "Waiting...";
+
+        if (myName && (myName === b.player1 || myName === b.player2)) {
+          const joinSec = document.getElementById("joinSection");
+          if (joinSec) joinSec.style.display = "none";
+        }
+
+        if (b.problem) {
+          document.getElementById("problemText").innerText = b.problem.statement || b.problem.description || "";
+          document.getElementById("problemInput").innerText = b.problem.input || "";
+          document.getElementById("expectedOutput").innerText = b.problem.expectedOutput || "";
+        }
+
+        document.getElementById("status").innerText = b.status || "waiting";
+
+        if (b.remainingTime !== undefined) {
+          const min = Math.floor(b.remainingTime / 60).toString().padStart(2, "0");
+          const sec = (b.remainingTime % 60).toString().padStart(2, "0");
+          document.getElementById("battleTimer").innerText = `${min}:${sec}`;
+        }
+
+        // Automatic redirect to result page when battle is finished
+        if (b.status === "finished" && !isRedirecting) {
+          isRedirecting = true;
+          if (pollInterval) clearInterval(pollInterval);
+          setTimeout(() => {
+            window.location.href = `result.html?battleId=${encodeURIComponent(battleId)}`;
+          }, 800);
+        } else if (myName && ((myName === b.player1 && b.player1Finished) || (myName === b.player2 && b.player2Finished))) {
+          document.getElementById("statusText").innerText = "Submitted! Waiting for opponent to finish...";
+          const finishBtn = document.getElementById("finishBtn");
+          if (finishBtn) finishBtn.disabled = true;
+        }
+      } catch (err) {
+        console.error("Failed to load battle:", err);
+      }
+    }
+
+    // Join battle
+    document.getElementById("joinBtn").onclick = async () => {
+      const name = document.getElementById("joinName").value.trim();
+      if (!name) return alert("Enter your name");
+      if (!battleId) return alert("Missing Battle ID in URL");
+
+      try {
+        const res = await fetch(`${API}/battle/join/${encodeURIComponent(battleId)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playerName: name })
+        });
+
+        const data = await res.json();
+        if (!data.success) {
+          document.getElementById("joinMsg").innerText = data.error || data.message || "Join failed";
+          return;
+        }
+
+        myName = name;
+        document.getElementById("joinSection").style.display = "none";
+        loadBattle();
+      } catch (err) {
+        console.error("Join error:", err);
+        document.getElementById("joinMsg").innerText = "Server connection error";
+      }
+    };
+
+    // Run code
+    document.getElementById("runBtn").onclick = async () => {
+      if (!myName) return alert("Please enter your name and join the battle first!");
+      const lang = document.getElementById("languageSelect").value;
+      const code = editor.getValue();
+      const input = document.getElementById("problemInput").innerText;
+
+      document.getElementById("outputBox").innerText = "Running...";
+      document.getElementById("statusText").innerText = "";
+
+      try {
+        const res = await fetch(`${API}/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ battleId, player: myName, language: lang, code, stdin: input })
+        });
+
+        const data = await res.json();
+        document.getElementById("outputBox").innerText = data.output || data.error || "No output";
+        if (data.status) {
+          document.getElementById("statusText").innerText = "Status: " + data.status;
+        }
+      } catch (err) {
+        console.error("Run error:", err);
+        document.getElementById("outputBox").innerText = "Error contacting backend";
+      }
+    };
+
+    // Finish
+    document.getElementById("finishBtn").onclick = async () => {
+      if (!battleId || !myName) return alert("Please join the battle first!");
+      const finishBtn = document.getElementById("finishBtn");
+      finishBtn.disabled = true;
+      document.getElementById("statusText").innerText = "Submitting code...";
+
+      try {
+        await persistLatestCode();
+
+        const res = await fetch(`${API}/battle/finish`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ battleId, playerName: myName, code: editor.getValue() })
+        });
+        const data = await res.json();
+
+        if (data.finished) {
+          document.getElementById("statusText").innerText = "Both players finished! Redirecting to results...";
+          setTimeout(() => {
+            window.location.href = `result.html?battleId=${encodeURIComponent(battleId)}`;
+          }, 800);
+        } else {
+          document.getElementById("statusText").innerText = "Submitted! Waiting for opponent to finish...";
+        }
+      } catch (err) {
+        console.error("Finish error:", err);
+        finishBtn.disabled = false;
+        document.getElementById("statusText").innerText = "Failed to submit finish request.";
+      }
+    };
+
+    // Start 2-second polling
+    pollInterval = setInterval(loadBattle, 2000);
+    loadBattle();
+  </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏆 Code Arena Battle Result</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>🏆 Battle Result</h1>
+
+  <div class="section result-card">
+    <div class="result-top">
+      <div><b>Battle ID:</b> <span id="battleId"></span></div>
+      <div><b>Players:</b> <span id="p1"></span> vs <span id="p2"></span></div>
+      <div><b>Outcome:</b> <span id="winner"></span></div>
+    </div>
+
+    <div id="cheer" class="cheer"></div>
+    <div id="suggestions" class="suggestions"></div>
+  </div>
+
+  <div class="section">
+    <h2>Player 1</h2>
+    <div class="mini">Status: <span id="p1status"></span></div>
+    <div class="mini">Output:</div>
+    <pre id="p1out"></pre>
+    <div class="mini">Code:</div>
+    <pre id="p1code"></pre>
+  </div>
+
+  <div class="section">
+    <h2>Player 2</h2>
+    <div class="mini">Status: <span id="p2status"></span></div>
+    <div class="mini">Output:</div>
+    <pre id="p2out"></pre>
+    <div class="mini">Code:</div>
+    <pre id="p2code"></pre>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const API = (typeof API_CONFIG !== "undefined" && API_CONFIG.BASE_URL)
+      ? API_CONFIG.BASE_URL
+      : "http://localhost:3000";
+
+    const params = new URLSearchParams(window.location.search);
+    const battleId = params.get("battleId");
+
+    const $ = (id) => document.getElementById(id);
+
+    function safeText(id, value) {
+      const el = $(id);
+      if (!el) return;
+      el.innerText = value;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.innerText = text;
+      return div.innerHTML;
+    }
+
+    async function loadResult() {
+      if (!battleId) {
+        safeText("winner", "Missing battleId in URL");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/battle/${encodeURIComponent(battleId)}/result`);
+        const data = await res.json();
+
+        if (!data.success || !data.result) {
+          safeText("winner", "Result not ready yet (please refresh after finishing).");
+          return;
+        }
+
+        const b = data.result;
+
+        safeText("battleId", b.battleId || battleId);
+        safeText("p1", b.player1 || "—");
+        safeText("p2", b.player2 || "—");
+
+        const isP1Winner = b.winner === "player1" || b.winner === b.player1 || (b.winnerName && b.winnerName === b.player1);
+        const isP2Winner = b.winner === "player2" || b.winner === b.player2 || (b.winnerName && b.winnerName === b.player2);
+
+        let winText = "Draw";
+        if (isP1Winner) {
+          winText = `Winner: ${b.player1 || "Player 1"}`;
+        } else if (isP2Winner) {
+          winText = `Winner: ${b.player2 || "Player 2"}`;
+        }
+        safeText("winner", winText);
+
+        safeText("p1status", b.player1Status || "—");
+        safeText("p2status", b.player2Status || "—");
+
+        safeText("p1out", b.player1Output || "—");
+        safeText("p2out", b.player2Output || "—");
+
+        safeText("p1code", b.player1Code || "—");
+        safeText("p2code", b.player2Code || "—");
+
+        const cheerEl = $("cheer");
+        if (cheerEl) {
+          if (isP1Winner) {
+            cheerEl.innerHTML = `🏆 <b>${escapeHtml(b.player1 || "Player 1")}</b> wins! Amazing performance 🔥`;
+          } else if (isP2Winner) {
+            cheerEl.innerHTML = `🏆 <b>${escapeHtml(b.player2 || "Player 2")}</b> wins! Superb coding ⚡`;
+          } else {
+            cheerEl.innerHTML = "🤝 It's a draw! Both performed well!";
+          }
+        }
+
+        const suggestionsEl = $("suggestions");
+        if (suggestionsEl) {
+          let tips = [];
+          if ((b.player1Status || "").includes("Wrong") || (b.player2Status || "").includes("Wrong") || (b.player1Status || "").includes("Error") || (b.player2Status || "").includes("Error")) {
+            tips.push("Check exact spacing and newline formatting.");
+            tips.push("Try multiple edge-case inputs.");
+            tips.push("Avoid printing extra descriptive text.");
+          } else {
+            tips.push("Try improving time complexity.");
+            tips.push("Refactor into smaller helper functions.");
+          }
+          suggestionsEl.innerHTML = "<b>Suggestions:</b><br>• " + tips.join("<br>• ");
+        }
+      } catch (err) {
+        safeText("winner", "Failed to load result (check backend connection).");
+        console.error("Failed to load battle result:", err);
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", loadResult);
+    } else {
+      loadResult();
+    }
+  </script>
+</body>
+</html>
